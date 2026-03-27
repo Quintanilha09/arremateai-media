@@ -1,0 +1,6 @@
+com\arremateai\media\exception\BusinessException.class
+com\arremateai\media\service\StorageService.class
+com\arremateai\media\exception\GlobalExceptionHandler.class
+com\arremateai\media\MediaApplication.class
+com\arremateai\media\config\WebConfig.class
+com\arremateai\media\controller\UploadController.class
