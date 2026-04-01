@@ -47,7 +47,7 @@ public class StorageService {
         Files.createDirectories(this.storageRoot.resolve("imoveis"));
         Files.createDirectories(this.storageRoot.resolve("videos"));
         Files.createDirectories(this.storageRoot.resolve("avatares"));
-        log.info("Storage root: {}", this.storageRoot);
+        log.info("Storage inicializado com sucesso");
     }
 
     public String salvarImagem(MultipartFile file) throws IOException {
@@ -105,7 +105,7 @@ public class StorageService {
             Files.copy(is, destino, StandardCopyOption.REPLACE_EXISTING);
         }
         String url = baseUrl + "/uploads/" + subdir + "/" + filename;
-        log.info("Arquivo salvo: {}", url);
+        log.debug("Arquivo salvo: {}", url);
         return url;
     }
 
@@ -123,7 +123,14 @@ public class StorageService {
         if (filename == null || !filename.contains(".")) {
             throw new BusinessException("Nome de arquivo inválido ou sem extensão");
         }
-        return filename.substring(filename.lastIndexOf('.') + 1).toLowerCase();
+        // Sanitize: only allow alphanumeric, dot, dash, underscore
+        String sanitized = filename.replaceAll("[^a-zA-Z0-9._-]", "_");
+        // Reject double extensions (e.g., shell.php.jpg)
+        long dotCount = sanitized.chars().filter(ch -> ch == '.').count();
+        if (dotCount > 1) {
+            throw new BusinessException("Nome de arquivo com múltiplas extensões não é permitido");
+        }
+        return sanitized.substring(sanitized.lastIndexOf('.') + 1).toLowerCase();
     }
 
     private void validarExtensao(String ext, List<String> allowed, String tipo) {
