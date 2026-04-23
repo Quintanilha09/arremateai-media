@@ -1,5 +1,5 @@
 server:
-  port: ${SERVER_PORT:8083}
+  port: ${SERVER_PORT:8084}
 
 spring:
   application:
@@ -16,7 +16,7 @@ spring:
 app:
   media:
     storage-location: ${MEDIA_STORAGE_LOCATION:./uploads}
-    base-url: ${MEDIA_BASE_URL:http://localhost:8083}
+    base-url: ${MEDIA_BASE_URL:http://localhost:8084}
     # Max allowed sizes (bytes)
     max-image-size: ${MEDIA_MAX_IMAGE_SIZE:5242880}
     max-video-size: ${MEDIA_MAX_VIDEO_SIZE:524288000}
