@@ -1,0 +1,38 @@
+server:
+  port: ${SERVER_PORT:8084}
+
+spring:
+  application:
+    name: arremateai-media
+
+  # Multipart upload limits
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 510MB
+      max-request-size: 520MB
+
+# Storage configuration
+app:
+  media:
+    storage-location: ${MEDIA_STORAGE_LOCATION:./uploads}
+    base-url: ${MEDIA_BASE_URL:http://localhost:8084}
+    # Max allowed sizes (bytes)
+    max-image-size: ${MEDIA_MAX_IMAGE_SIZE:5242880}
+    max-video-size: ${MEDIA_MAX_VIDEO_SIZE:524288000}
+    max-avatar-size: ${MEDIA_MAX_AVATAR_SIZE:2097152}
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+# Logging
+logging:
+  level:
+    com.arremateai.media: INFO
