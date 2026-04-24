@@ -1,0 +1,17 @@
+spring:
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 15MB
+
+app:
+  media:
+    base-url: http://localhost:8084
+    max-image-size: 5242880
+    max-video-size: 10485760
+    max-avatar-size: 2097152
+
+logging:
+  level:
+    com.arremateai.media: WARN
