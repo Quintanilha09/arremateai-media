@@ -26,6 +26,10 @@
     <Match>
         <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
     </Match>
+    <!-- Construtor do StorageService lança IOException para falha de init (padrão Spring válido) -->
+    <Match>
+        <Bug pattern="CT_CONSTRUCTOR_THROW"/>
+    </Match>
     <!-- Ignorar testes -->
     <Match>
         <Class name="~.*Test"/>
