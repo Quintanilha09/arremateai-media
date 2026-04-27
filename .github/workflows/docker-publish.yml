@@ -11,14 +11,18 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  # Local-only tag para o scan do Trivy. Lowercase via repository.name
+  # (evita case-sensitivity issue com Quintanilha09/...)
+  SCAN_TAG: ${{ github.event.repository.name }}:scan
 
 permissions:
   contents: read
   packages: write
+  security-events: write
 
 jobs:
   publish:
-    name: Build and push
+    name: Build, scan and push
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -51,18 +55,65 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha,prefix=sha-,format=short
 
-      # Multi-platform (amd64+arm64) nao funciona pois maven:3.9-eclipse-temurin-17-alpine
-      # nao publica manifest arm64. Mantendo apenas amd64 (suficiente para cloud/producao).
-      # Para suportar arm64 (ex: Apple Silicon, AWS Graviton), trocar a base image
-      # para 'maven:3.9-eclipse-temurin-17' (sem -alpine) em PR follow-up.
-      - name: Build and push image
+      # Stage 1: build amd64 local para scan Trivy (RN-01: bloqueia em CRITICAL antes do push)
+      - name: Build amd64 image for vulnerability scan
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          load: true
+          push: false
+          tags: ${{ env.SCAN_TAG }}
+          platforms: linux/amd64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Trivy roda em DOIS steps por causa de quirk da trivy-action:
+      # quando format=sarif, o filtro --severity NAO eh aplicado ao trivy CLI,
+      # entao exit-code dispara em qualquer vulnerabilidade (HIGH/MED/LOW).
+      # Solucao: SARIF nao-bloqueante (todas severidades para Security tab) +
+      # gate em format=table com severity=CRITICAL (filtro funciona corretamente).
+      - name: Trivy SARIF report (non-blocking, all severities)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.SCAN_TAG }}
+          format: sarif
+          output: trivy-results.sarif
+          exit-code: '0'
+
+      - name: Trivy CRITICAL gate (blocks push if CRITICAL with fix)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.SCAN_TAG }}
+          format: table
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+
+      - name: Upload Trivy SARIF report to Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy
+
+      - name: Upload Trivy results as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-results-sarif
+          path: trivy-results.sarif
+          retention-days: 14
+
+      # Stage 2: build multi-platform e push (cache reaproveita layers do scan)
+      # Base image trocada de alpine para Debian justamente para suportar arm64.
+      - name: Build and push multi-platform image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           cache-from: type=gha
           cache-to: type=gha,mode=max
           provenance: false
