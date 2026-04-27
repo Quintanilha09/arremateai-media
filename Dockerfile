@@ -3,6 +3,8 @@ FROM maven:3.9-eclipse-temurin-17-alpine AS build
 WORKDIR /app
 COPY pom.xml .
 RUN mvn dependency:go-offline -B
+# Quality plugins (checkstyle, spotbugs) precisam dos configs no contexto do build.
+COPY checkstyle.xml checkstyle-suppressions.xml spotbugs-exclude.xml ./
 COPY src/ src/
 RUN mvn clean package -DskipTests -B
 
