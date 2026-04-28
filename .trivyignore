@@ -1,0 +1,11 @@
+# CVE-2026-22732: Spring Security policy bypass and information disclosure
+# Detected in: org.springframework.security:spring-security-web (transitive via Spring Boot 3.5.3)
+# Trivy DB fix versions: 6.5.9 and 7.0.4
+# As of 2026-04-28, NEITHER fix version is published on Maven Central:
+#   - Latest 6.5.x available: 6.5.1
+#   - Latest 7.0.x available: not yet (project pre-release)
+# Therefore, no upgrade path exists; ignore-unfixed:true does not filter this
+# because Trivy DB lists fix versions as "available" even when not published.
+# Re-evaluate when 6.5.9+ or 7.0.4+ ships in Maven Central.
+# Track: https://avd.aquasec.com/nvd/cve-2026-22732
+CVE-2026-22732

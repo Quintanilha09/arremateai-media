@@ -79,6 +79,7 @@ jobs:
           format: sarif
           output: trivy-results.sarif
           exit-code: '0'
+          trivyignores: ./.trivyignore
 
       - name: Trivy CRITICAL gate (blocks push if CRITICAL with fix)
         uses: aquasecurity/trivy-action@v0.36.0
@@ -88,6 +89,7 @@ jobs:
           severity: CRITICAL
           ignore-unfixed: true
           exit-code: '1'
+          trivyignores: ./.trivyignore
 
       - name: Upload Trivy SARIF report to Security tab
         if: always()
