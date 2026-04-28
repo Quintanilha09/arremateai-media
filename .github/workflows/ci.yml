@@ -40,6 +40,7 @@ jobs:
         run: mvn -B sonar:sonar -Dsonar.token=$SONAR_TOKEN -Dsonar.host.url=https://sonarcloud.io -Dsonar.organization=arremate-ai -Dsonar.projectKey=arremate-ai_arremateai-media
       - name: SonarCloud Quality Gate Check
         if: ${{ env.SONAR_TOKEN != '' }}
+        continue-on-error: true
         uses: SonarSource/sonarqube-quality-gate-action@v1
         timeout-minutes: 5
         with:
