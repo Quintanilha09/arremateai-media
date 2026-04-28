@@ -1,0 +1,73 @@
+name: Smoke Test Staging
+
+# Roda apos Docker Publish completar com sucesso em main.
+# Sobe imagem GHCR contra Neon staging DB e valida actuator/health.
+on:
+  workflow_run:
+    workflows: ["Docker Publish"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  smoke:
+    name: Container boots and reports healthy against Neon staging
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull latest image
+        run: docker pull ghcr.io/${{ github.repository }}:latest
+
+      - name: Run container against Neon staging
+        run: |
+          docker run -d --name app-under-test \
+            -p 8083:8083 \
+            -e SERVER_PORT=8083 \
+            -e SPRING_DATASOURCE_URL='${{ secrets.STAGING_DB_URL }}' \
+            -e SPRING_DATASOURCE_USERNAME='${{ secrets.STAGING_DB_USERNAME }}' \
+            -e SPRING_DATASOURCE_PASSWORD='${{ secrets.STAGING_DB_PASSWORD }}' \
+            -e JWT_SECRET='staging-smoke-test-jwt-secret-not-used-in-prod-min-256-bits-padding' \
+            -e GOOGLE_CLIENT_ID='staging-smoke-dummy' \
+            -e GOOGLE_CLIENT_SECRET='staging-smoke-dummy' \
+            -e INTERNAL_API_KEY='staging-smoke-dummy' \
+            -e GATEWAY_SECRET='staging-smoke-dummy' \
+            -e EMAIL_USERNAME='noreply@arremateai.com' \
+            -e EMAIL_PASSWORD='staging-smoke-dummy' \
+            ghcr.io/${{ github.repository }}:latest
+
+      - name: Wait for health (up to 90s)
+        run: |
+          for i in $(seq 1 90); do
+            STATUS=$(curl -sf "http://localhost:8083/actuator/health" 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','none'))" 2>/dev/null || echo "none")
+            if [ "$STATUS" = "UP" ]; then
+              echo "Container healthy after ${i}s"
+              exit 0
+            fi
+            echo "  attempt ${i}/90: status=$STATUS"
+            sleep 1
+          done
+          echo "Container did not become healthy in 90s"
+          echo ""
+          echo "=== docker ps ==="
+          docker ps -a
+          echo ""
+          echo "=== docker logs (last 200 lines) ==="
+          docker logs app-under-test 2>&1 | tail -200
+          exit 1
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker stop app-under-test 2>/dev/null || true
+          docker rm app-under-test 2>/dev/null || true
