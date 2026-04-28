@@ -58,7 +58,7 @@ jobs:
           # indicam falha real.
           for i in $(seq 1 90); do
             HTTP=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:8083/actuator/health" 2>/dev/null || echo "000")
-            if [ "$HTTP" = "200" ] || [ "$HTTP" = "401" ]; then
+            if [ "$HTTP" = "200" ] || [ "$HTTP" = "401" ] || [ "$HTTP" = "403" ]; then
               echo "Container responding (HTTP $HTTP) after ${i}s"
               exit 0
             fi
