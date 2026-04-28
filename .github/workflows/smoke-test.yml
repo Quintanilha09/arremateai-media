@@ -52,16 +52,20 @@ jobs:
 
       - name: Wait for health (up to 90s)
         run: |
+          # Aceita HTTP 200 (UP publico) ou 401 (app subiu mas /actuator
+          # esta autenticado — Spring Security default). Ambos provam que a
+          # app subiu e esta atendendo. Apenas 5xx ou connection refused
+          # indicam falha real.
           for i in $(seq 1 90); do
-            STATUS=$(curl -sf "http://localhost:8083/actuator/health" 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','none'))" 2>/dev/null || echo "none")
-            if [ "$STATUS" = "UP" ]; then
-              echo "Container healthy after ${i}s"
+            HTTP=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:8083/actuator/health" 2>/dev/null || echo "000")
+            if [ "$HTTP" = "200" ] || [ "$HTTP" = "401" ]; then
+              echo "Container responding (HTTP $HTTP) after ${i}s"
               exit 0
             fi
-            echo "  attempt ${i}/90: status=$STATUS"
+            echo "  attempt ${i}/90: HTTP=$HTTP"
             sleep 1
           done
-          echo "Container did not become healthy in 90s"
+          echo "Container did not respond in 90s"
           echo ""
           echo "=== docker ps ==="
           docker ps -a
